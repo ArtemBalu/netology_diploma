@@ -27,13 +27,16 @@ class User(AbstractUser):
     type = models.CharField(verbose_name='Тип пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
     company = models.CharField(verbose_name='Компания', max_length=100, blank=True)
     position = models.CharField(verbose_name='Должность', max_length=100, blank=True)
+    adress = models.EmailField(max_length=500, verbose_name='Адрес')
+    phone = models.IntegerField(verbose_name='Телефон')
+    # Исключил модель Контакты, так как не вижу смысла в ее наличии
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
     def __str__(self):
-        return f'{self.first_name} {self.last_name}, {self.email}'
+        return f'{self.first_name} {self.last_name}, {self.email}, {self.phone}'
 
 
 class UserManager(BaseUserManager):
@@ -45,7 +48,7 @@ class UserManager(BaseUserManager):
         if not username or not email:
             raise ValueError('Поля username и email не могут быть пустыми!')
         email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields) # не могу найти метод, нашел только параметр в методе _init_
+        user = self.model(username=username, email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -60,7 +63,7 @@ class UserManager(BaseUserManager):
         if not username or not email:
             raise ValueError('Поля username и email не могут быть пустыми!')
         email = self.normalize_email(email)
-        superuser = self.model(email=email, **extra_fields) # не могу найти метод
+        superuser = self.model(username=username, email=email, **extra_fields)
         superuser.set_password(password)
         superuser.save(using=self._db)
         return superuser
@@ -110,7 +113,7 @@ class ProductInfo(models.Model):
     model = models.CharField(max_length=100, verbose_name='Модель')
     shop = models.ForeignKey(Shop, verbose_name='Магазин', related_name='product_info', blank=True, on_delete=models.CASCADE)
     name = models.CharField(max_length=40, verbose_name='Название')
-    description = models.TextField(max_length=5000, verbose_name='Описание')
+    description = models.TextField(max_length=5000, verbose_name='Информация о товаре')
     quantity = models.IntegerField(verbose_name='Количество')
     price = models.DecimalField(decimal_places=2, verbose_name='Цена')
     recomended_price = models.DecimalField(decimal_places=2, verbose_name='Рекомедованная розничная цена')
@@ -179,16 +182,3 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f'Позиция {self.product_info} заказа {self.order}'
-
-
-class Contact(models.Model):
-    user = models.OneToOneField(User, verbose_name='Пользователь', related_name='contacts', on_delete=models.CASCADE)
-    adress = models.EmailField(max_length=500, verbose_name='Адрес')
-    phone = models.IntegerField(verbose_name='Телефон')
-
-    class Meta:
-        verbose_name = 'Карточка контактов пользователя'
-        verbose_name_plural = 'Карточки контактов пользователей'
-
-    def __str__(self):
-        return self.user
