@@ -57,6 +57,7 @@ class ProductParameterSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True, many=True)
+    cost = serializers.IntegerField()
 
     class Meta:
         model = Order
@@ -72,7 +73,4 @@ class OrderItemSerializer(serializers.ModelSerializer):
         model = OrderItem
         fields = ('id', 'order', 'product_info', 'quantity')
         read_only_fields = ('id')
-
-
-class OrderItemCreateSerializer(serializers.ModelSerializer):
-    pass
+        extra_kwargs = {'order': {'write_only': True}}

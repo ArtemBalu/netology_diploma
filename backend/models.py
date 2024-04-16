@@ -1,42 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
-
-
-class User(AbstractUser):
-
-    # В стандартной модели пользователя уже имеется:
-    # _state — используется для сохранения состояния пользователя
-    # id — уникальный идентификатор пользователя
-    # password — зашифрованный пароль пользователя
-    # last_login — дата и время последнего входа пользователя
-    # is_superuser — истинно, если пользователь является суперпользователем, иначе — ложно
-    # username — уникальное имя пользователя
-    # first_name — имя пользователя
-    # last_name — фамилия пользователя
-    # email — идентификатор электронного адреса пользователя
-    # is_staff — истинно, если пользователь является сотрудником, иначе — ложно
-    # is_active — истинно, если профиль пользователя активен
-    # date_joined — дата и время первого входа пользователя (заполняется автоматически)
-
-    USER_TYPE_CHOICES = (
-        ('shop', 'Магазин'),
-        ('buyer', 'Покупатель'),
-    )
-    
-    type = models.CharField(verbose_name='Тип пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
-    company = models.CharField(verbose_name='Компания', max_length=100, blank=True)
-    position = models.CharField(verbose_name='Должность', max_length=100, blank=True)
-    adress = models.EmailField(max_length=500, verbose_name='Адрес')
-    phone = models.IntegerField(verbose_name='Телефон')
-    # Исключил модель Контакты, так как не вижу смысла в ее наличии
-
-    class Meta:
-        verbose_name = 'Пользователь'
-        verbose_name_plural = 'Пользователи'
-
-    def __str__(self):
-        return f'{self.first_name} {self.last_name}, {self.email}, {self.phone}'
+from django_rest_passwordreset.tokens import get_token_generator
 
 
 class UserManager(BaseUserManager):
@@ -68,6 +33,64 @@ class UserManager(BaseUserManager):
         superuser.save(using=self._db)
         return superuser
 
+
+class User(AbstractUser):
+
+    # В стандартной модели пользователя уже имеется:
+    # _state — используется для сохранения состояния пользователя
+    # id — уникальный идентификатор пользователя
+    # password — зашифрованный пароль пользователя
+    # last_login — дата и время последнего входа пользователя
+    # is_superuser — истинно, если пользователь является суперпользователем, иначе — ложно
+    # username — уникальное имя пользователя
+    # first_name — имя пользователя
+    # last_name — фамилия пользователя
+    # email — идентификатор электронного адреса пользователя
+    # is_staff — истинно, если пользователь является сотрудником, иначе — ложно
+    # is_active — истинно, если профиль пользователя активен
+    # date_joined — дата и время первого входа пользователя (заполняется автоматически)
+
+    objects = UserManager() # заменим менеджер для модели User
+
+    USER_TYPE_CHOICES = (
+        ('shop', 'Магазин'),
+        ('buyer', 'Покупатель'),
+    )
+    
+    type = models.CharField(verbose_name='Тип пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
+    company = models.CharField(verbose_name='Компания', max_length=100, blank=True)
+    position = models.CharField(verbose_name='Должность', max_length=100, blank=True)
+    adress = models.EmailField(max_length=500, verbose_name='Адрес')
+    phone = models.IntegerField(verbose_name='Телефон')
+    # Исключил модель Контакты, так как не вижу смысла в ее наличии
+
+    class Meta:
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
+
+    def __str__(self):
+        return f'{self.first_name} {self.last_name}, {self.email}, {self.phone}'
+
+
+class ConfirmEmailToken(models.Model):
+    objects = models.manager.Manager()
+    class Meta:
+        verbose_name = 'Токен подтверждения Email'
+        verbose_name_plural = 'Токены подтверждения Email'
+
+    user = models.ForeignKey(User, related_name='confirm_email_tokens', on_delete=models.CASCADE, verbose_name='Пользователь')
+    created_at = models.DateTimeField(auto_now_add=True)
+    key = models.CharField(max_length=64, unique=True, verbose_name='Ключ-токен')
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = get_token_generator().generate_token()
+        return super(ConfirmEmailToken, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return f'Ключ-токен пользователя {self.user}'
+
+
 class Shop(models.Model):
     ORDERS_CHOICES = (
         ('open', 'Заказы открыты'),
@@ -86,6 +109,7 @@ class Shop(models.Model):
     def __str__(self):
         return self.name
 
+
 class Category(models.Model):
     name = models.CharField(max_length=40, verbose_name='Название')
     shops = models.ManyToManyField(Shop, verbose_name='Магазины', related_name='categories', blank=True)
@@ -96,6 +120,7 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class Product(models.Model):
     name = models.CharField(max_length=40, verbose_name='Название')
@@ -108,11 +133,11 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+
 class ProductInfo(models.Model):
-    product = models.ForeignKey(Product, verbose_name='Описание товара', related_name='product_info', blank=True, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, verbose_name='Товар', related_name='product_info', blank=True, on_delete=models.CASCADE)
     model = models.CharField(max_length=100, verbose_name='Модель')
     shop = models.ForeignKey(Shop, verbose_name='Магазин', related_name='product_info', blank=True, on_delete=models.CASCADE)
-    name = models.CharField(max_length=40, verbose_name='Название')
     description = models.TextField(max_length=5000, verbose_name='Информация о товаре')
     quantity = models.IntegerField(verbose_name='Количество')
     price = models.DecimalField(decimal_places=2, verbose_name='Цена')
@@ -125,6 +150,7 @@ class ProductInfo(models.Model):
     def __str__(self):
         return self.name
 
+
 class Parameter(models.Model):
     name = models.CharField(max_length=40, verbose_name='Пользовательский параметр')
     
@@ -134,6 +160,7 @@ class Parameter(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class ProductParameter(models.Model):
     product_info = models.ForeignKey(ProductInfo, verbose_name='Карточка информации о товаре', related_name='parameters', on_delete=models.CASCADE)
