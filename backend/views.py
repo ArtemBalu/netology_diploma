@@ -21,6 +21,7 @@ import yaml
 
 from models import *
 from serializers import *
+from signals import new_order
 
 
 class UserRegistration(APIView):
@@ -93,7 +94,7 @@ class BasketView(APIView):
         
         basket = Order.objects.filter(user = request.user.id, status = 'temporary').prefetch_related(
             'positions__product_info__product__category',
-            'ordered_items__product_info__product__name').annotate(
+            'positions__product_info__product__name').annotate(
             cost=Sum(F('positions__quantity') * F('positions__product_info__price'))).distinct()
         serializer = OrderSerializer(basket, many=True)
         return Response(serializer.data)
@@ -290,10 +291,10 @@ class PartnerOrders(APIView):
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=403)
 
         order = Order.objects.filter(
-            ordered_items__product_info__shop__user_id=request.user.id).exclude(state='basket').prefetch_related(
-            'ordered_items__product_info__product__category',
-            'ordered_items__product_info__product_parameters__parameter').select_related('contact').annotate(
-            total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
+            ordered_items__product_info__shop__user_id=request.user.id).exclude(state='temporary').prefetch_related(
+            'positions__product_info__product__category',
+            'positions__product_info__parameters__parameter').select_related('user').annotate(
+            total_sum=Sum(F('positions__quantity') * F('positions__product_info__price'))).distinct()
 
         serializer = OrderSerializer(order, many=True)
         return Response(serializer.data)
@@ -306,10 +307,10 @@ class OrderView(APIView):
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
         order = Order.objects.filter(
-            user_id=request.user.id).exclude(state='basket').prefetch_related(
-            'ordered_items__product_info__product__category',
-            'ordered_items__product_info__product_parameters__parameter').select_related('contact').annotate(
-            total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
+            user_id=request.user.id).exclude(state='temporary').prefetch_related(
+            'positions__product_info__product__category',
+            'positions__product_info__parameters__parameter').select_related('user').annotate(
+            total_sum=Sum(F('positions__quantity') * F('positions__product_info__price'))).distinct()
 
         serializer = OrderSerializer(order, many=True)
         return Response(serializer.data)
