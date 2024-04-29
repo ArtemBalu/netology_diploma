@@ -140,8 +140,8 @@ class ProductInfo(models.Model):
     shop = models.ForeignKey(Shop, verbose_name='Магазин', related_name='product_info', blank=True, on_delete=models.CASCADE)
     description = models.TextField(max_length=5000, verbose_name='Информация о товаре')
     quantity = models.IntegerField(verbose_name='Количество')
-    price = models.DecimalField(decimal_places=2, verbose_name='Цена')
-    recomended_price = models.DecimalField(decimal_places=2, verbose_name='Рекомедованная розничная цена')
+    price = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Цена')
+    recomended_price = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Рекомедованная розничная цена')
 
     class Meta:
         verbose_name = 'Карточка информации о товаре'

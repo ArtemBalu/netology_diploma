@@ -40,8 +40,11 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'django_filters',
+    'rest_framework.authtoken',
+    'django_rest_passwordreset',
 
     'backend',
+    'backend.apps.BackendConfig',
 ]
 
 MIDDLEWARE = [
@@ -83,7 +86,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'diploma',
         'HOST': '127.0.0.1',
-        'PORT': '5432',
+        'PORT': '5433',
         'USER': 'postgres',
         'PASSWORD':'8450087182'
     }
@@ -140,6 +143,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'youremail@gmail.com' 
 EMAIL_HOST_PASSWORD = 'yourpassword' 
 EMAIL_PORT = 587
+SERVER_EMAIL = EMAIL_HOST_USER
 
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': [

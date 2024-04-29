@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework.request import Request
 from rest_framework.response import Response
 from django.contrib.auth.password_validation import validate_password
@@ -99,7 +98,7 @@ class BasketView(APIView):
         serializer = OrderSerializer(basket, many=True)
         return Response(serializer.data)
 
-    # Метод POST, редактирование количества товара в корзине
+    # Метод POST, редактирование позиций корзины
     def post(self, request: Request, *args, **kwargs):
         # Проверка аутентификации
         if not request.user.is_authenticated:
@@ -180,6 +179,12 @@ class CategoryView(ListAPIView):
 class ShopView(APIView):
 
     def get(self, request: Request, *args, **kwargs):
+        # Проверка аутентификации и того. что пользователь является продавцом (магазином)
+        if not request.user.is_authenticated:
+            return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
+        if request.user.type != 'shop':
+            return JsonResponse({'Status': False, 'Error': 'Пользователь должен иметь тип - магазин!'}, status=403)
+            
         shop = request.user.shop
         serializer = ShopSerializer(shop)
         return Response(serializer.data)
@@ -333,7 +338,7 @@ class OrderView(APIView):
                     return JsonResponse({'Status': False, 'Errors': 'Неправильно указаны аргументы'})
                 else:
                     if is_updated:
-                        # new order is a signal to email
+                        # new order is a signal to email, see signals.py
                         new_order.send(sender=self.__class__, user_id=request.user.id)
                         return JsonResponse({'Status': True})
 
